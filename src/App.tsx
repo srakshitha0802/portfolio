@@ -8,7 +8,7 @@ import { routes } from './routes';
 const App: React.FC = () => {
   return (
     <ThemeProvider>
-      <Router basename={import.meta.env.BASE_URL}>
+      <Router>
         <div className="flex flex-col min-h-screen">
           <main className="flex-grow">
             <Routes>
