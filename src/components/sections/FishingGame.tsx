@@ -144,8 +144,9 @@ const FishingGame: React.FC = () => {
     const draw = (time: number) => {
       const dt = Math.min((time - lastTimeRef.current) / 16.67, 3);
       lastTimeRef.current = time;
-      const w = canvas.width / (window.devicePixelRatio || 1);
-      const h = canvas.height / (window.devicePixelRatio || 1);
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const w = canvas.width / dpr;
+      const h = canvas.height / dpr;
 
       // Clear
       ctx.clearRect(0, 0, w, h);

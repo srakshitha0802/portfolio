@@ -5,6 +5,8 @@ import { Send, Mail, Phone, MapPin, Github, Linkedin, CheckCircle } from 'lucide
 const ContactSection: React.FC = () => {
   const [formData, setFormData] = useState({ name: '', email: '', message: '' });
   const [submitted, setSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const headingRef = useRef(null);
@@ -25,14 +27,48 @@ const ContactSection: React.FC = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (validate()) {
-      setSubmitted(true);
-      setTimeout(() => {
-        setSubmitted(false);
-        setFormData({ name: '', email: '', message: '' });
-      }, 3000);
+      setIsSubmitting(true);
+      setSubmitError(null);
+      
+      try {
+        const accessKey = import.meta.env.VITE_WEB3FORMS_ACCESS_KEY?.trim();
+        if (!accessKey) {
+          throw new Error('Web3Forms access key is not configured in .env file.');
+        }
+
+        const response = await fetch("https://api.web3forms.com/submit", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
+          body: JSON.stringify({
+            access_key: accessKey,
+            name: formData.name,
+            email: formData.email,
+            message: formData.message,
+          }),
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+          setSubmitted(true);
+          setTimeout(() => {
+            setSubmitted(false);
+            setFormData({ name: '', email: '', message: '' });
+          }, 5000);
+        } else {
+          setSubmitError(result.message || 'Failed to send message. Please try again.');
+        }
+      } catch (error: any) {
+        setSubmitError(error.message || 'Something went wrong. Please try again later.');
+      } finally {
+        setIsSubmitting(false);
+      }
     }
   };
 
@@ -236,13 +272,23 @@ const ContactSection: React.FC = () => {
 
                     <motion.button
                       type="submit"
-                      whileHover={{ scale: 1.02, boxShadow: '0 0 20px rgba(229, 115, 153, 0.3)' }}
-                      whileTap={{ scale: 0.98 }}
-                      className="w-full py-3 px-6 rounded-lg bg-primary text-primary-foreground font-medium text-sm flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"
+                      disabled={isSubmitting}
+                      whileHover={{ scale: isSubmitting ? 1 : 1.02, boxShadow: isSubmitting ? 'none' : '0 0 20px rgba(229, 115, 153, 0.3)' }}
+                      whileTap={{ scale: isSubmitting ? 1 : 0.98 }}
+                      className={`w-full py-3 px-6 rounded-lg bg-primary text-primary-foreground font-medium text-sm flex items-center justify-center gap-2 transition-all ${isSubmitting ? 'opacity-70 cursor-not-allowed' : 'hover:opacity-90'}`}
                     >
                       <Send size={16} />
-                      Send Message
+                      {isSubmitting ? 'Sending...' : 'Send Message'}
                     </motion.button>
+                    {submitError && (
+                      <motion.p
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        className="text-sm text-red-400 mt-2 text-center"
+                      >
+                        {submitError}
+                      </motion.p>
+                    )}
                   </form>
                 )}
               </div>
